@@ -1,0 +1,59 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="MonitorTile.WindowOptions" x:Name="OptionsWindow" Title="API Options" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+    WindowStyle="None" AllowsTransparency="True" UseLayoutRounding="True" ResizeMode="NoResize" SizeToContent="Height" Icon="Images/FormStatus0.ico"
+    Width="400" BorderThickness="1" BorderBrush="#20FFFFFF" Background="#FF333333" Foreground="#FFFFFFFF" FontSize="14"
+    Activated="OptionsWindow_Activated"
+>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" MouseDown="TitleBar_MouseDown">
+            <Grid.Style>
+                <Style TargetType="{x:Type Grid}">
+                    <Setter Property="Background" Value="#00000000" />
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseDirectlyOver" Value="True">
+                            <Setter Property="Background" Value="#20FFFFFF" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Margin="9 0 1 1" TextTrimming="CharacterEllipsis" IsHitTestVisible="False" Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}, FallbackValue='API Options'}" />
+            <Button Grid.Column="1" ToolTip="Commit" Style="{StaticResource ButtonWidget}" IsDefault="True" Click="WidgetCommit_Click">
+                <Button.Background>
+                    <ImageBrush ImageSource="Images/GlyphConfirm.png" />
+                </Button.Background>
+            </Button>
+            <Button Grid.Column="2" ToolTip="Cancel" Style="{StaticResource ButtonWidget}" IsCancel="True">
+                <Button.Background>
+                    <ImageBrush ImageSource="Images/GlyphDiscard.png" />
+                </Button.Background>
+            </Button>
+        </Grid>
+        <TextBlock Grid.Row="1" VerticalAlignment="Top" Margin="12 15 9 0">Account e-Mail</TextBlock>
+        <TextBox x:Name="TextAccountEmail" Grid.Row="1" Grid.Column="1" Margin="9 12 12 6" Padding="1 2" MinHeight="26" MouseDoubleClick="TextBox_GotFocus" GotKeyboardFocus="TextBox_GotFocus" PreviewMouseLeftButtonDown="TextBox_MouseDown"></TextBox>
+        <TextBlock Grid.Row="2" VerticalAlignment="Top" Margin="12 9 9 0">Reporting Key</TextBlock>
+        <TextBox x:Name="TextReportingKey" Grid.Row="2" Grid.Column="1" Margin="9 6 12 6" Padding="1 2" MinHeight="45" MouseDoubleClick="TextBox_GotFocus" GotKeyboardFocus="TextBox_GotFocus" PreviewMouseLeftButtonDown="TextBox_MouseDown" TextWrapping="Wrap"></TextBox>
+        <TextBlock Grid.Row="3" VerticalAlignment="Top" Margin="12 8 9 0">Website Login</TextBlock>
+        <ComboBox x:Name="ListWebsiteOpen" Grid.Row="3" Grid.Column="1" Margin="9 6 12 6" Padding="1 2" MinHeight="26" SelectedIndex="0">
+            <ComboBoxItem>Off</ComboBoxItem>
+            <ComboBoxItem>On Task Click</ComboBoxItem>
+            <ComboBoxItem>On Source Click</ComboBoxItem>
+        </ComboBox>
+        <CheckBox x:Name="TickDeveloperSession" Grid.Row="4" Grid.Column="1" Margin="9 6 12 12" Foreground="#FFFFFFFF"><TextBlock Margin="2 -2 0 0">Development Session</TextBlock></CheckBox>
+    </Grid>
+</Window>

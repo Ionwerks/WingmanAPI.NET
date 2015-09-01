@@ -1,0 +1,38 @@
+﻿<Application x:Class="MonitorTile.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" StartupUri="WindowMain.xaml">
+    <Application.Resources>
+        <Style x:Key="ButtonWidget" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="BorderBrush" Value="#20FFFFFF" />
+            <Setter Property="BorderThickness" Value="9" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Field" Background="{TemplateBinding BorderBrush}" Padding="{TemplateBinding BorderThickness}">
+                            <Border x:Name="Glyph" Background="{TemplateBinding Background}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="False">
+                                <Setter TargetName="Field" Property="Background" Value="Transparent" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Glyph" Property="Margin" Value="+1 +1 -1 -1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <DrawingBrush x:Key="CircleBack" Stretch="Uniform">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+                    <DrawingGroup.Children>
+                        <GeometryDrawing Brush="#FFFFFF" Geometry="F1 M 188.137,26.3933C 99.1027,26.3933 26.6667,98.828 26.6667,187.864C 26.6667,276.899 99.1027,349.333 188.137,349.333C 277.172,349.333 349.608,276.899 349.608,187.864C 349.608,98.828 277.172,26.3933 188.137,26.3933 Z M 188.137,376C 84.3987,376 7.3115e-006,291.601 7.3115e-006,187.864C 7.3115e-006,84.124 84.3987,-0.273346 188.137,-0.273346C 291.876,-0.273346 376.275,84.124 376.275,187.864C 376.275,291.601 291.876,376 188.137,376 Z "/>
+                        <GeometryDrawing Brush="#FFFFFF" Geometry="F1 M 188.137,93.3752L 93.6493,187.863L 188.137,282.351L 207.035,263.454L 144.804,201.225L 282.625,201.225L 282.625,174.503L 144.804,174.503L 207.035,112.272L 188.137,93.3752 Z "/>
+                    </DrawingGroup.Children>
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
+    </Application.Resources>
+</Application>
