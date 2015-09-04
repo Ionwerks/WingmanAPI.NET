@@ -58,7 +58,7 @@
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
                         <Image Source="{Binding Status, Converter={StaticResource StatusImage}}" Width="12" Height="12" Margin="2 2 6 2" />
-                        <TextBlock Text="{Binding Description}" FontWeight="Bold" />
+                        <TextBlock><Run Text="{Binding Description}" FontWeight="Bold" /> [<Run Text="{Binding Platform, Mode=OneWay}" />]</TextBlock>
                     </StackPanel>
                 </DataTemplate>
             </ComboBox.ItemTemplate>

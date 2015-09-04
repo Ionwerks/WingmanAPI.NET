@@ -27,6 +27,37 @@ namespace WingmanAPI {
 		public Status Status { get { return _Status; } set { if (_Status != value) { _Status = value; if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Status")); } } }
 		private String _Description;
 		public String Description { get { return _Description; } set { if (_Description != value) { _Description = value; if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Description")); } } }
+		public String Platform {
+			get {
+				switch (ID & 0x1F000000000000) {
+				case 0x00000000000000: return "Unspecified OS";
+				case 0x01000000000000: return "Unspecified 64-Bit OS";
+				case 0x02000000000000: return "Windows XP";
+				case 0x03000000000000: return "Windows XP x64";
+				case 0x04000000000000: return "Windows Vista";
+				case 0x05000000000000: return "Windows Vista x64";
+				case 0x06000000000000: return "Windows 7";
+				case 0x07000000000000: return "Windows 7 x64";
+				case 0x08000000000000: return "Windows 8"; // & 8.1
+				case 0x09000000000000: return "Windows 8 x64"; // & 8.1
+				case 0x0A000000000000: return "Windows 10";
+				case 0x0B000000000000: return "Windows 10 x64";
+				case 0x0E000000000000: return "Unix/Linux Workstation I386";
+				case 0x0F000000000000: return "Unix/Linux Workstation x86-64";
+				case 0x12000000000000: return "Windows Server 2003";
+				case 0x13000000000000: return "Windows Server 2003 x64";
+				case 0x14000000000000: return "Windows Server 2008"; // & 2008 R2
+				case 0x15000000000000: return "Windows Server 2008 x64"; // & 2008 R2
+				case 0x16000000000000: return "Windows Server 2012"; // & 2012 R2
+				case 0x17000000000000: return "Windows Server 2012 x64"; // & 2012 R2
+				case 0x18000000000000: return "Windows Server 2016";
+				case 0x19000000000000: return "Windows Server 2016 x64";
+				case 0x1E000000000000: return "Unix/Linux Server i386";
+				case 0x1F000000000000: return "Unix/Linux Server x86-64";
+				default: return "Windows";
+				}
+			}
+		}
 	}
 
 	public class Task : INotifyPropertyChanged {
@@ -43,7 +74,7 @@ namespace WingmanAPI {
 		private String _Description;
 		public String Description { get { return _Description; } set { if (_Description != value) { _Description = value; if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Description")); } } }
 		private String _Detail;
-		public String Detail { get { return _Detail; } set { if (_Detail != value) { _Detail = value; if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Detail")); } } }
+		public String Detail { get { return (_Detail ?? "No alerts."); } set { if (_Detail != value) { _Detail = value; if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs("Detail")); } } }
 	}
 
 	public class Monitor : IDisposable {
@@ -52,17 +83,18 @@ namespace WingmanAPI {
 
 		public class EchoEventArgs : EventArgs {public string Text { get; internal set; } public EchoEventArgs(string Echo) { Text = Echo; }}
 		public class UpdateTasksEventArgs : EventArgs {public bool Cleared { get; internal set; } public UpdateTasksEventArgs(bool Clear) { Cleared = Clear; }}
-		public class StoppedEventArgs : EventArgs {public bool Errored { get; internal set; } public StoppedEventArgs(bool Error) { Errored = Error; }}
 
 		public event EventHandler Started;
 		public event EventHandler<EchoEventArgs> Echo;
 		public event EventHandler UpdateSources;
 		public event EventHandler<UpdateTasksEventArgs> UpdateTasks;
-		public event EventHandler<StoppedEventArgs> Stopped;
+		public event EventHandler Stopped;
 
 		/* ATTRIBUTES ====================================================== */
 
-		public Boolean? Connected { get; internal set; } // ConnectionState: Disconnected=Null, Connected=True, Errored=False
+		public enum State { Errored = -1, Stopped, Started, Connected }
+
+		public State ConnectionState { get; internal set; }
 		public Version ServiceVersion { get; internal set; }
 		public String Account { get; internal set; }
 		public String SessionKey { get; internal set; }
@@ -77,19 +109,18 @@ namespace WingmanAPI {
 		public ICollectionView TasksView { get; internal set; }
 
 		private Source _SelectedSource;
-		public Source SelectedSource {get {return _SelectedSource;} set {if (_SelectedSource == value) return; _SelectedSource = value; if (_SelectedSource == null || _SelectedSource.Current) TasksView.Refresh(); if (WorkerFlag.Equals(true)) WorkerWait.Set(); }}
+		public Source SelectedSource {get {return _SelectedSource;} set {if (_SelectedSource == value) return; _SelectedSource = value; if (_SelectedSource == null || _SelectedSource.Current) TasksView.Refresh(); if (ConnectionState > State.Stopped) UpdateWait.Set(); }}
 		private Int64? _ClearAlertID; // Heartbeat tasks have a 0 ID so this has to be nullable.
-		public Int64? ClearAlertID {get {return _ClearAlertID;} set {if (_ClearAlertID == value || _ClearAlertID.HasValue) return; _ClearAlertID = value; if (WorkerFlag.Equals(true)) WorkerWait.Set();}}
+		public Int64? ClearAlertID { get { return _ClearAlertID; } set { if (_ClearAlertID == value || _ClearAlertID.HasValue) return; _ClearAlertID = value; if (ConnectionState >= State.Started) UpdateWait.Set(); } }
 		private Boolean _DoWebLogin;
-		public Boolean DoWebLogin {get {return _DoWebLogin; } set {if (_DoWebLogin == value || _DoWebLogin) return; _DoWebLogin = value; if (WorkerFlag.Equals(true)) WorkerWait.Set();}}
+		public Boolean DoWebLogin { get { return _DoWebLogin; } set { if (_DoWebLogin == value || _DoWebLogin) return; _DoWebLogin = value; if (ConnectionState >= State.Started) UpdateWait.Set(); } }
 		private Boolean _Paused;
-		public Boolean Paused {get {return _Paused;} set {if (_Paused == value) return; _Paused = value; if (WorkerFlag.Equals(true)) WorkerWait.Set();}}
+		public Boolean Paused { get { return _Paused; } set { if (_Paused == value) return; _Paused = value; if (ConnectionState >= State.Started) UpdateWait.Set(); } }
 
 		private HttpRequestCachePolicy CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
-		private ManualResetEvent WorkerExit = new ManualResetEvent(false);
-		private ManualResetEvent WorkerWait = new ManualResetEvent(false);
-		private Boolean? WorkerFlag; // WorkerThread: Exited=Null, Running=True, Errored=False
-		private Dispatcher WorkerDispatcher;
+		private AutoResetEvent UpdateExit = new AutoResetEvent(false);
+		private AutoResetEvent UpdateWait = new AutoResetEvent(false);
+		private Dispatcher UpdateDispatcher;
 		private DateTime LastRequest;
 
 		private Regex ParseSource = new Regex(@"(\d+)\s(\d)\s(.+)"); // <SourceID> <Status> <SourceName>
@@ -125,14 +156,13 @@ namespace WingmanAPI {
 		protected virtual void Dispose(bool Disposing) {
 
 			if (Disposing) {
-				if (WorkerFlag.Equals(true)) {
-					WorkerExit.Reset();
-					WorkerFlag = null; // Signal update thread exit.
-					WorkerWait.Set();
-					WorkerExit.WaitOne();
+				if (ConnectionState > State.Stopped) {
+					ConnectionState = State.Stopped;
+					UpdateWait.Set();
+					UpdateExit.WaitOne();
 				}
-				WorkerWait.Dispose();
-				WorkerExit.Dispose();
+				UpdateWait.Dispose();
+				UpdateExit.Dispose();
 			}
 		
 		}
@@ -141,9 +171,11 @@ namespace WingmanAPI {
 
 		public void Start(string AccountEmail, string ReportingKey, bool DevelopmentSession) {
 
-			WorkerDispatcher = Dispatcher.CurrentDispatcher;
+			if (ConnectionState > State.Stopped) throw new Exception("Already started.");
 
-			WorkerFlag = true;
+			UpdateDispatcher = Dispatcher.CurrentDispatcher;
+
+			ConnectionState = State.Started;
 
 			BackgroundWorker UpdateThread = new BackgroundWorker();
 			UpdateThread.DoWork += MonitorWork;
@@ -154,9 +186,9 @@ namespace WingmanAPI {
 
 		public void Stop() {
 
-			WorkerFlag = null; // Signal update thread exit.
+			ConnectionState = State.Stopped;
 
-			WorkerWait.Set();
+			UpdateWait.Set();
 
 		}
 
@@ -170,12 +202,12 @@ namespace WingmanAPI {
 			GroupCollection Matches = null;
 			TimeSpan WaitPeriod = TimeSpan.Zero;
 
-			while (WorkerFlag.Equals(true)) {
-				if (Connected.Equals(true) != true) {
+			while (ConnectionState >= State.Started) {
+				if (ConnectionState != State.Connected) {
 					#region Establish a session.
 					switch (MakeRequest(String.Format("{0}?v={1}&a={2}&r={3}{4}", URL_LOGIN, API_VERSION, Parameters.Item1, Parameters.Item2, (Parameters.Item3 ? "&d" : String.Empty)), ref ReplyFields)) {
 					case "OK": // OK|0.1|o1Wk2YIE4h7DIvPglNrz|1|3600|Development Session
-						WorkerDispatcher.Invoke((Action)delegate {
+						UpdateDispatcher.Invoke((Action)delegate {
 							if (ReplyFields.Length >= 6 && ReplyFields[1] == API_VERSION) { // Service should confirm it supports our API version by passing the same back (otherwise it will return the current/latest).
 								ServiceVersion = new Version(ReplyFields[1]);
 								SessionKey = ReplyFields[2];
@@ -184,15 +216,15 @@ namespace WingmanAPI {
 								Account = ReplyFields[5];
 								Refresh = DateTime.MinValue;
 								Status = Status.Dormant;
-								Connected = true;
+								ConnectionState = State.Connected;
 								if (Started != null) Started.Invoke(this, new EventArgs());
 							} else {
-								WorkerFlag = Connected = false; // WorkerFlag:false signals an error.
+								ConnectionState = State.Errored;
 							}
 						});
 						break;
-					case "NA": // NA|180|Not available.
-						WorkerDispatcher.Invoke((Action)delegate {
+					case "NA": // NA|180|Not available. /* A session has been recently established or relinquished. */
+						UpdateDispatcher.Invoke((Action)delegate {
 							Refresh = DateTime.Now.AddSeconds(Double.Parse(ReplyFields[1])); // ReplyFields[1] tells us in how many more seconds we should retry for a session.
 							if (Started != null) Started.Invoke(this, new EventArgs());
 						});
@@ -200,16 +232,16 @@ namespace WingmanAPI {
 					case "NO": // NO|Malformed request. // NO|Invalid account or key. // NO|Unsupported version. // NO|Not enabled for this account.
 					case "KO": // KO|Service error.
 					default:
-						WorkerFlag = Connected = false; // WorkerFlag:false signals an error.
+						ConnectionState = State.Errored;
 						break;
 					}
 					#endregion
 				}
-				if (Connected.Equals(true) && Refresh <= DateTime.Now) {
+				if (ConnectionState == State.Connected && Refresh <= DateTime.Now) {
 					#region Refresh the list of sources.
 					switch (MakeRequest(String.Format("{0}?k={1}&s", URL_QUERY, SessionKey), ref ReplyFields)) {
 					case "OK": // OK|180 (No Change) or OK|180|<Source1>|<Source2>|...<SourceN>
-						WorkerDispatcher.Invoke((Action)delegate {
+						UpdateDispatcher.Invoke((Action)delegate {
 							Refresh = DateTime.Now.AddSeconds(Double.Parse(ReplyFields[1])); // ReplyFields[1] tells us in how many more seconds we can refresh the source list.
 							if (ReplyFields.Length > 2) { // Response includes source data.
 								Int32 Index = 1; // Maintains a consistent source order (within Status grouping).
@@ -249,25 +281,25 @@ namespace WingmanAPI {
 							}
 						});
 						break;
-					case "NA": // NA|180|Not available.
-						WorkerDispatcher.Invoke((Action)delegate { // We've somehow failed to observe the protocol strictures, if we want to recover we need to observe the new refresh pause.
+					case "NA": // NA|180|Not available. /* We've somehow failed to observe the polling strictures, if we want to recover we need to observe the new list refresh pause. */
+						UpdateDispatcher.Invoke((Action)delegate {
 							Refresh = DateTime.Now.AddSeconds(Double.Parse(ReplyFields[1])); // ReplyFields[1] tells us in how many more seconds we can refresh the source list.
 						});
 						break;
 					case "NO": // NO|Malformed request. // NO|Session not found.
 					case "KO": // KO|Service error.
 					default:
-						WorkerFlag = Connected = false; // WorkerFlag:false signals an error.
+						ConnectionState = State.Errored;
 						break;
 					}
 					#endregion
 				}
-				if (Connected.Equals(true) && SelectedSource != null && SelectedSource.Current != true) {
+				if (ConnectionState == State.Connected && SelectedSource != null && SelectedSource.Current != true) {
 					#region Refresh the list of tasks for the current source.
 					Int64 SourceID = SelectedSource.ID; // Take a copy in case it changes while we're awaiting a response.
 					switch (MakeRequest(String.Format("{0}?k={1}&s={2}", URL_QUERY, SessionKey, SourceID), ref ReplyFields)) {
 					case "OK": // OK|180 (No Change) or OK|180| (No Summary/Alerted Tasks) or OK|180|<TasksSummary>|<Alert1>|<Alert2>|...<AlertN> or OK|0| (Source not found, presumed removed).
-						WorkerDispatcher.Invoke((Action)delegate {
+						UpdateDispatcher.Invoke((Action)delegate {
 							if (ReplyFields.Length > 1) { // Response includes task/alert data.
 								Int32 Index = 1; // Maintains a consistent task order (within Status grouping).
 								foreach (Task Task in Tasks.Where(x => x.Source == SourceID)) Task.Status = Status.Dormant; // Mark existing tasks with a zero Status (so we can delete any that aren't updated).
@@ -285,7 +317,7 @@ namespace WingmanAPI {
 												Pending = Status.Success,
 												Alerted = null,
 												Description = Matches[ParsedTask.Description].ToString(),
-												Detail = "No alerts."
+												Detail = null
 											});
 										} else { // Reset existing task status fields, if it's still alerted it'll be revised again below.
 											Existing.Order = Index++;
@@ -293,7 +325,7 @@ namespace WingmanAPI {
 											Existing.Pending = Status.Success;
 											Existing.Alerted = null;
 											Existing.Description = Matches[ParsedTask.Description].ToString();
-											Existing.Detail = "No alerts.";
+											Existing.Detail = null;
 										}
 									} else {} // Parse failure - should probably error.
 								}
@@ -327,107 +359,107 @@ namespace WingmanAPI {
 									if (Tasks[i].Status == Status.Dormant) Tasks.Remove(Tasks[i]);
 								}
 								TasksView.Refresh();
-								Sources.Single(x => x.ID == SourceID).Status = (Status)(Tasks.Where(y => y.Source == SourceID).Max(z => (Int32?)z.Status) ?? 1); // Revise the updated source status from the status of its tasks.
-								Sources.Single(x => x.ID == SourceID).Current = true;
+								Source Source = Sources.SingleOrDefault(x => x.ID == SourceID);
+								if (Source != null) {
+									Source.Status = (Status)(Tasks.Where(y => y.Source == SourceID).Max(z => (Int32?)z.Status) ?? 1); // Revise the updated source status from the status of its tasks.
+									Source.Current = true;
+								}
 								SourcesView.Refresh();
 								Status = (Status)(Sources.Max(x => (Int32?)x.Status) ?? 0); // Revise the overall monitor status from the status of all sources.
 								if (UpdateTasks != null) UpdateTasks.Invoke(this, new UpdateTasksEventArgs(false));
 							}
 						});
 						break;
-					case "NA": // NA|180|Not available.
-						WorkerDispatcher.Invoke((Action)delegate { // We've somehow failed to observe the protocol strictures, if we want to recover we need to observe the new refresh pause.
+					case "NA": // NA|180|Not available. /* We've somehow failed to observe the polling strictures, if we want to recover we need to observe the new list refresh pause. */
+						UpdateDispatcher.Invoke((Action)delegate {
 							Refresh = DateTime.Now.AddSeconds(Double.Parse(ReplyFields[1])); // ReplyFields[1] tells us in how many more seconds we can refresh the source list.
 						});
 						break;
 					case "NO": // NO|Malformed request. // NO|Session not found. // DEVELOPMENT SESSION ONLY: NO|Invalid source.
 					case "KO": // KO|Service error.
 					default:
-						WorkerFlag = Connected = false; // WorkerFlag:false signals an error.
+						ConnectionState = State.Errored;
 						break;
 					}
 					#endregion
 				}
-				if (Connected.Equals(true) && SelectedSource != null && ClearAlertID.HasValue) {
+				if (ConnectionState == State.Connected && SelectedSource != null && ClearAlertID.HasValue) {
 					#region Clear the specified alert.
 					Int64 SourceID = SelectedSource.ID; // Take a copy in case it changes while we're awaiting a response.
-					Int64 AlertID = ClearAlertID.Value;
+					Int64 AlertID = ClearAlertID.Value; // Ditto.
 					switch (MakeRequest(String.Format("{0}?k={1}&s={2}&c={3}", URL_QUERY, SessionKey, SourceID, AlertID), ref ReplyFields)) {
 					case "OK": // OK|1 or OK|2|\r- Local drive C:\ has less than 5% free space (3.57GB available).
-						WorkerDispatcher.Invoke((Action)delegate {
-							Task Cleared = Tasks.Single(x => x.Source == SourceID && x.ID == AlertID); // Revise our copy of the task.
-							if ((Status)Int32.Parse(ReplyFields[1]) < Status.Caution && Cleared.Type == TaskType.Undefined) { // Task is no longer alerted and was not defined other than as an alert (i.e. there is no Task Summary or the task was deleted since the alert was posted) so we remove it.
-								Tasks.Remove(Cleared);
-							} else {
-								Cleared.Status = (Status)Int32.Parse(ReplyFields[1]); // ReplyFields[1] contains the new Status.
-								Cleared.Pending = Cleared.Status; // After a 'Clear' there can be nothing else pending.
-								Cleared.Alerted = (Cleared.Status > Status.Success ? DateTime.Now : (DateTime?)null); // After a 'Clear' a task may still be alerted, if so, record the time we cleared (downgraded) it.
-								Cleared.Detail = (ReplyFields.Length > 2 ? Regex.Replace(ReplyFields[2], "^\\r", String.Empty) : "No alerts."); // ReplyFields[2] contains new alert Detail (typically, but not always, empty), strip any leading CR.
+						UpdateDispatcher.Invoke((Action)delegate {
+							Task Cleared = Tasks.SingleOrDefault(x => x.Source == SourceID && x.ID == AlertID); // Revise our copy of the task.
+							if (Cleared != null) {
+								if ((Status)Int32.Parse(ReplyFields[1]) < Status.Caution && Cleared.Type == TaskType.Undefined) { // Task is no longer alerted and was not defined other than as an alert (i.e. there is no Task Summary or the task was deleted since the alert was posted) so we remove it.
+									Tasks.Remove(Cleared);
+								} else {
+									Cleared.Status = (Status)Int32.Parse(ReplyFields[1]); // ReplyFields[1] contains the new Status.
+									Cleared.Pending = Cleared.Status; // After a 'Clear' there can be nothing else pending.
+									Cleared.Alerted = (Cleared.Status > Status.Success ? DateTime.Now : (DateTime?)null); // After a 'Clear' a task may still be alerted, if so, record the time we cleared (downgraded) it.
+									Cleared.Detail = (ReplyFields.Length > 2 ? Regex.Replace(ReplyFields[2], "^\\r", String.Empty) : null); // ReplyFields[2] contains new alert Detail (typically, but not always, empty), strip any leading CR.
+								}
 							}
 							TasksView.Refresh();
-							Sources.Single(x => x.ID == SourceID).Status = (Status)(Tasks.Where(y => y.Source == SourceID).Max(z => (Int32?)z.Status) ?? 1); // Revise the updated source status from the status of its tasks.
+							Source Source = Sources.SingleOrDefault(x => x.ID == SourceID);
+							if (Source != null) {
+								Source.Status = (Status)(Tasks.Where(y => y.Source == SourceID).Max(z => (Int32?)z.Status) ?? 1); // Revise the updated source status from the status of its tasks.
+							}
 							SourcesView.Refresh();
 							Status = (Status)(Sources.Max(x => (Int32?)x.Status) ?? 0); // Revise the overall monitor status from the status of all sources.
 							if (UpdateTasks != null) UpdateTasks.Invoke(this, new UpdateTasksEventArgs(true));
 						});
-						_ClearAlertID = null;
 						break;
-					case "NA": // NA|Not enabled for this account.
-						_ClearAlertID = null;
+					case "NA": // NA|Not enabled for this account. /* The ability to clear alerts has been disabled by the account holder. */
 						break;
 					case "NO": // NO|Malformed request. // NO|Session not found. // DEVELOPMENT SESSION ONLY: NO|Invalid task.
 					case "KO": // KO|Service error.
 					default:
-						WorkerFlag = Connected = false; // WorkerFlag:false signals an error.
+						ConnectionState = State.Errored;
 						break;
 					}
+					_ClearAlertID = null;
 					#endregion
 				}
-				if (Connected.Equals(true) && DoWebLogin) {
+				if (ConnectionState == State.Connected && DoWebLogin) {
 					#region Open a pre-authorized website session.
 					switch (MakeRequest(String.Format("{0}?k={1}&w", URL_QUERY, SessionKey), ref ReplyFields)) {
 					case "OK": // OK|<URL>
 						System.Diagnostics.Process.Start(ReplyFields[1]); // ReplyFields[1] contains a link to a pre-authorized login, valid for 60 seconds.
-						_DoWebLogin = false;
 						break;
-					case "NA": // NA|Not enabled for this account.
-						_DoWebLogin = false;
+					case "NA": // NA|Not enabled for this account. /* The ability to login via the API has not been enabled by the account holder. */
 						break;
 					case "NO": // NO|Invalid session key.
 					case "KO": // KO|Service error.
 					default:
-						WorkerFlag = Connected = false; // WorkerFlag:false signals an error.
+						ConnectionState = State.Errored;
 						break;
 					}
+					_DoWebLogin = false;
 					#endregion
 				}
-				if (Connected.Equals(true)) {
+				if (ConnectionState >= State.Started) {
 					#region Wait for the next thing to do.
-					if (Paused) {
+					if (ConnectionState != State.Connected) {
+						WaitPeriod = Refresh - DateTime.Now; // Wait for a session.
+					} else if (Paused) {
 						WaitPeriod = (LastRequest + SessionLife - TimeSpan.FromSeconds(5)) - DateTime.Now; // Keep the session alive.
 					} else if (SelectedSource == null || SelectedSource.Current) {
-						WaitPeriod = Refresh - DateTime.Now;
+						WaitPeriod = Refresh - DateTime.Now; // Wait to update source list.
 					} else {
-						WaitPeriod = TimeSpan.Zero;
+						WaitPeriod = TimeSpan.Zero; // Don't wait.
 					}
 					if (WaitPeriod > TimeSpan.Zero) {
 						if (WaitPeriod < TimeSpan.FromMilliseconds(1)) WaitPeriod = TimeSpan.FromMilliseconds(1);
-						if (Echo != null) WorkerDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(String.Format("Waiting {0}...", WaitPeriod)));
-						WorkerWait.Reset();
-						WorkerWait.WaitOne(WaitPeriod);
+						if (Echo != null) UpdateDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(String.Format("Waiting {0}...", WaitPeriod)));
+						UpdateWait.WaitOne(WaitPeriod);
 					}
-					#endregion
-				} else if (WorkerFlag.Equals(true)) {
-					#region Wait on session availability.
-					WaitPeriod = Refresh - DateTime.Now;
-					if (Echo != null) WorkerDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(String.Format("Waiting {0}...", WaitPeriod)));
-					WorkerWait.Reset();
-					WorkerWait.WaitOne(Refresh - DateTime.Now);
 					#endregion
 				}
 			}
 
-			if (Connected.Equals(true)) MakeRequest(String.Format("{0}?x={1}", URL_QUERY, SessionKey), ref ReplyFields); // Relinquish session.
+			if (SessionKey != null) MakeRequest(String.Format("{0}?x={1}", URL_QUERY, SessionKey), ref ReplyFields); // Relinquish session.
 
 		}
 
@@ -448,11 +480,10 @@ namespace WingmanAPI {
 			SessionLife = TimeSpan.Zero;
 			SessionKey = null;
 			ServiceVersion = null;
-			Connected = false;
 
-			if (Stopped != null) Stopped.Invoke(this, new StoppedEventArgs(WorkerFlag.Equals(false)));
+			if (Stopped != null) Stopped.Invoke(this, new EventArgs());
 
-			WorkerExit.Set();
+			UpdateExit.Set();
 
 		}
 
@@ -465,17 +496,17 @@ namespace WingmanAPI {
 
 			LastRequest = DateTime.Now;
 
-			if (Echo != null) WorkerDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(Query));
+			if (Echo != null) UpdateDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(Query));
 
 			try {
 				using (HttpWebResponse Response = (HttpWebResponse)Request.GetResponse())
 				using (StreamReader Reader = new StreamReader(Response.GetResponseStream())) {
 					ReplyFields = (Buffer = Reader.ReadToEnd()).Split('\n');
-					if (Echo != null) WorkerDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(Buffer));
+					if (Echo != null) UpdateDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(Buffer));
 				}
 			} catch (Exception x) {
 				ReplyFields = null;
-				if (Echo != null) WorkerDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(String.Format("ERROR: {0}", x.Message)));
+				if (Echo != null) UpdateDispatcher.BeginInvoke(Echo, this, new EchoEventArgs(String.Format("ERROR: {0}", x.Message)));
 			}
 
 			if (ReplyFields == null || ReplyFields.Length == 0) {

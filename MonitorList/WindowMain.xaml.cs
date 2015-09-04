@@ -66,10 +66,9 @@ namespace MonitorList {
 
 		/* PRIVATE PROCEDURES ============================================== */
 
-		private void MonitorStart() { MonitorStart(false); }
-		private void MonitorStart(Boolean Errored) {
+		private void MonitorStart() {
 
-			if (Errored || String.IsNullOrEmpty(AccountEmail) || String.IsNullOrEmpty(ReportingKey)) {
+			if (Monitor.ConnectionState == WingmanAPI.Monitor.State.Errored || String.IsNullOrEmpty(AccountEmail) || String.IsNullOrEmpty(ReportingKey)) {
 				OptionsDialog(true);
 			} else {
 				Monitor.Start(AccountEmail, ReportingKey, DeveloperSession);
@@ -102,37 +101,35 @@ namespace MonitorList {
 			OptionsWindow.TextReportingKey.Text = ReportingKey;
 			OptionsWindow.TickDeveloperSession.IsChecked = DeveloperSession;
 
-			if (OptionsWindow.ShowDialog().Equals(true)) {
+			if (OptionsWindow.ShowDialog() == true) {
 				Boolean Connect = Errored;
-				if (OptionsWindow.TextAccountEmail.Text.Trim().Equals(AccountEmail) != true) {
+				if (OptionsWindow.TextAccountEmail.Text.Trim() != AccountEmail) {
 					AccountEmail = OptionsWindow.TextAccountEmail.Text.Trim();
-					if (String.IsNullOrEmpty(AccountEmail) || AccountEmail.Equals(AccountEmailDefault)) {
+					if (String.IsNullOrEmpty(AccountEmail) || AccountEmail == AccountEmailDefault) {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").DeleteValue("WebAccount", false);
 					} else {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").SetValue("WebAccount", AccountEmail);
 					}
 					Connect = true;
 				}
-				if (OptionsWindow.TextReportingKey.Text.Trim().Equals(ReportingKey) != true) {
+				if (OptionsWindow.TextReportingKey.Text.Trim() != ReportingKey) {
 					ReportingKey = OptionsWindow.TextReportingKey.Text.Trim();
-					if (String.IsNullOrEmpty(ReportingKey) || ReportingKey.Equals(ReportingKeyDefault)) {
+					if (String.IsNullOrEmpty(ReportingKey) || ReportingKey == ReportingKeyDefault) {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").DeleteValue("WebAuthority", false);
 					} else {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").SetValue("WebAuthority", ReportingKey);
 					}
 					Connect = true;
 				}
-				if (OptionsWindow.TickDeveloperSession.IsChecked.Equals(DeveloperSession) != true) {
+				if (OptionsWindow.TickDeveloperSession.IsChecked != DeveloperSession) {
 					DeveloperSession = OptionsWindow.TickDeveloperSession.IsChecked.Value;
 					Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").SetValue("WebDevelopment", DeveloperSession ? "True" : "False");
 					Connect = true;
 				}
-				if (Connect) {
-					if (Monitor.Connected.Equals(true)) {
-						Monitor.Stop();
-					} else {
-						Monitor.Start(AccountEmail, ReportingKey, DeveloperSession);
-					}
+				if (Monitor.ConnectionState >= WingmanAPI.Monitor.State.Started) {
+					Monitor.Stop();
+				} else {
+					Monitor.Start(AccountEmail, ReportingKey, DeveloperSession);
 				}
 			} else if (Errored) {
 				Close();
@@ -186,14 +183,14 @@ namespace MonitorList {
 
 		}
 
-		private void Monitor_Stopped(object sender, WingmanAPI.Monitor.StoppedEventArgs e) {
+		private void Monitor_Stopped(object sender, EventArgs e) {
 
 			Title = "Wingman Monitor";
 			Icon = new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus0.ico"));
 
 			ButtonPause.Background = PauseGlyphs[0];
 
-			if (WindowFlag.Equals(false) != true) MonitorStart(e.Errored);
+			if (WindowFlag != false) MonitorStart();
 
 		}
 
@@ -212,7 +209,7 @@ namespace MonitorList {
 
 		private void MainWindow_Activated(object sender, EventArgs e) {
 
-			if (WindowFlag.Equals(null)) {
+			if (WindowFlag == null) {
 				WindowFlag = true;
 				MonitorStart();
 			}
@@ -221,9 +218,9 @@ namespace MonitorList {
 
 		private void MainWindow_Closing(object sender, CancelEventArgs e) {
 
-			WindowFlag = false; // Prevent service restart.
+			WindowFlag = false; // Prevents monitor restart.
 
-			if (Monitor.Connected.Equals(true)) Monitor.Stop();
+			if (Monitor.ConnectionState >= WingmanAPI.Monitor.State.Started) Monitor.Stop();
 
 		}
 
@@ -247,7 +244,7 @@ namespace MonitorList {
 
 		private void WebLogin_Click(object sender, RoutedEventArgs e) {
 
-			if (Monitor.Connected.Equals(true)) {
+			if (Monitor.ConnectionState == WingmanAPI.Monitor.State.Connected) {
 				Monitor.DoWebLogin = true;
 			} else {
 				MessageBox.Show("Not connected.", "Web Login", MessageBoxButton.OK, MessageBoxImage.Exclamation);
@@ -263,7 +260,7 @@ namespace MonitorList {
 
 		private void WidgetSuspend_Click(object sender, RoutedEventArgs e) {
 
-			if (Monitor.Connected ?? false) {
+			if (Monitor.ConnectionState == WingmanAPI.Monitor.State.Connected) {
 				if (Monitor.Paused) {
 					Monitor.Paused = false;
 					ButtonPause.Background = PauseGlyphs[0];

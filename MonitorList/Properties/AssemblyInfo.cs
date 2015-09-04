@@ -7,11 +7,11 @@ using System.Windows;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Wingman Monitor")]
+[assembly: AssemblyTitle("Monitor List")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Ionwerks Ltd.")]
-[assembly: AssemblyProduct("Wingman Monitor")]
+[assembly: AssemblyProduct("Monitor List")]
 [assembly: AssemblyCopyright("Copyright © Ionwerks Ltd. 2014-2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

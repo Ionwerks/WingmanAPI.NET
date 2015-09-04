@@ -76,7 +76,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="TextTaskDescription" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap" FontSize="18" Margin="0 -3 18 0" />
-                <Image x:Name="ImageTaskIcon" Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" VerticalAlignment="Top" Width="32" Height="32" Opacity="0.50" />
+                <Image x:Name="ImageTaskIcon" Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" VerticalAlignment="Top" Width="32" Height="32" Opacity="1.00" />
                 <TextBlock x:Name="TextTaskDate" Grid.Row="1" Grid.Column="0" Margin="0 15 4 1" />
                 <Button x:Name="ButtonClear" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Style="{StaticResource ButtonWidget}" Margin="4 16 0 0" Width="12" Height="12" BorderThickness="0" BorderBrush="Transparent" Click="ButtonClear_Click" ToolTip="Clear"><Button.Background><ImageBrush ImageSource="Images/GlyphDiscard.png" /></Button.Background></Button>
                 <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">

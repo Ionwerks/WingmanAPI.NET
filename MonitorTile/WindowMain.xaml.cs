@@ -84,10 +84,9 @@ namespace MonitorTile {
 
 		/* PRIVATE PROCEDURES ============================================== */
 
-		private void MonitorStart() { MonitorStart(false); }
-		private void MonitorStart(Boolean Errored) {
+		private void MonitorStart() {
 
-			if (Errored || String.IsNullOrEmpty(AccountEmail) || String.IsNullOrEmpty(ReportingKey)) {
+			if (Monitor.ConnectionState == WingmanAPI.Monitor.State.Errored || String.IsNullOrEmpty(AccountEmail) || String.IsNullOrEmpty(ReportingKey)) {
 				OptionsDialog(true);
 			} else {
 				Monitor.Start(AccountEmail, ReportingKey, DeveloperSession);
@@ -97,7 +96,7 @@ namespace MonitorTile {
 
 		private void ViewRefresh() { // Should use bindings but life's too short to be typing out irrelevant boilerplate in an example...
 
-			if (Monitor.Connected != true) {
+			if (Monitor.ConnectionState != WingmanAPI.Monitor.State.Connected) {
 				SelectedTask = null; // In case this was set before disconnection.
 				Icon = StatusIcons[(int)WingmanAPI.Status.Dormant];
 				Background = StatusBrushes[(int)WingmanAPI.Status.Dormant];
@@ -178,27 +177,27 @@ namespace MonitorTile {
 			OptionsWindow.ListWebsiteOpen.SelectedIndex = WebsiteOpen;
 			OptionsWindow.TickDeveloperSession.IsChecked = DeveloperSession;
 
-			if (OptionsWindow.ShowDialog().Equals(true)) {
+			if (OptionsWindow.ShowDialog() == true) {
 				Boolean Connect = Errored;
-				if (OptionsWindow.TextAccountEmail.Text.Trim().Equals(AccountEmail) != true) {
+				if (OptionsWindow.TextAccountEmail.Text.Trim() != AccountEmail) {
 					AccountEmail = OptionsWindow.TextAccountEmail.Text.Trim();
-					if (String.IsNullOrEmpty(AccountEmail) || AccountEmail.Equals(AccountEmailDefault)) {
+					if (String.IsNullOrEmpty(AccountEmail) || AccountEmail == AccountEmailDefault) {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").DeleteValue("WebAccount", false);
 					} else {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").SetValue("WebAccount", AccountEmail);
 					}
 					Connect = true;
 				}
-				if (OptionsWindow.TextReportingKey.Text.Trim().Equals(ReportingKey) != true) {
+				if (OptionsWindow.TextReportingKey.Text.Trim() != ReportingKey) {
 					ReportingKey = OptionsWindow.TextReportingKey.Text.Trim();
-					if (String.IsNullOrEmpty(ReportingKey) || ReportingKey.Equals(ReportingKeyDefault)) {
+					if (String.IsNullOrEmpty(ReportingKey) || ReportingKey == ReportingKeyDefault) {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").DeleteValue("WebAuthority", false);
 					} else {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").SetValue("WebAuthority", ReportingKey);
 					}
 					Connect = true;
 				}
-				if (OptionsWindow.ListWebsiteOpen.SelectedIndex.Equals(WebsiteOpen) != true) {
+				if (OptionsWindow.ListWebsiteOpen.SelectedIndex != WebsiteOpen) {
 					WebsiteOpen = OptionsWindow.ListWebsiteOpen.SelectedIndex;
 					if (WebsiteOpen == 0) {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").DeleteValue("WebLogin", false);
@@ -206,13 +205,13 @@ namespace MonitorTile {
 						Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").SetValue("WebLogin", WebsiteOpen.ToString());
 					}
 				}
-				if (OptionsWindow.TickDeveloperSession.IsChecked.Equals(DeveloperSession) != true) {
+				if (OptionsWindow.TickDeveloperSession.IsChecked != DeveloperSession) {
 					DeveloperSession = OptionsWindow.TickDeveloperSession.IsChecked.Value;
 					Registry.CurrentUser.CreateSubKey(@"SOFTWARE\Ionwerks\WingmanAPI").SetValue("WebDevelopment", DeveloperSession ? "True" : "False");
 					Connect = true;
 				}
 				if (Connect) {
-					if (Monitor.Connected == true) {
+					if (Monitor.ConnectionState >= WingmanAPI.Monitor.State.Started) {
 						Monitor.Stop();
 					} else {
 						Monitor.Start(AccountEmail, ReportingKey, DeveloperSession);
@@ -270,13 +269,13 @@ namespace MonitorTile {
 
 		}
 
-		private void Monitor_Stopped(object sender, WingmanAPI.Monitor.StoppedEventArgs e) {
+		private void Monitor_Stopped(object sender, EventArgs e) {
 
 			ViewRefresh();
 
 			ButtonPause.Background = PauseGlyphs[0];
 
-			if (WindowFlag.Equals(false) != true) MonitorStart(e.Errored);
+			if (WindowFlag != false) MonitorStart();
 
 		}
 
@@ -290,7 +289,7 @@ namespace MonitorTile {
 
 		private void MainWindow_Activated(object sender, EventArgs e) {
 
-			if (WindowFlag.Equals(null)) {
+			if (WindowFlag == null) {
 				WindowFlag = true;
 				MonitorStart();
 			}
@@ -299,9 +298,9 @@ namespace MonitorTile {
 
 		private void MainWindow_Closing(object sender, CancelEventArgs e) {
 
-			WindowFlag = false; // Prevent service restart.
+			WindowFlag = false; // Prevents monitor restart.
 
-			if (Monitor.Connected == true) Monitor.Stop();
+			if (Monitor.ConnectionState >= WingmanAPI.Monitor.State.Started) Monitor.Stop();
 
 		}
 
@@ -357,7 +356,7 @@ namespace MonitorTile {
 
 		private void WidgetSuspend_Click(object sender, RoutedEventArgs e) {
 
-			if (Monitor.Connected ?? false) {
+			if (Monitor.ConnectionState == WingmanAPI.Monitor.State.Connected) {
 				if (Monitor.Paused) {
 					Monitor.Paused = false;
 					ButtonPause.Background = PauseGlyphs[0];
