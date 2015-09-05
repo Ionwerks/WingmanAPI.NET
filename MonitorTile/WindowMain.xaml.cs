@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,19 +13,6 @@ using System.Windows.Media.Imaging;
 namespace MonitorTile {
 
 	public partial class WindowMain : Window, IDisposable {
-
-		private static BitmapImage[] TaskIcons = new BitmapImage[] {
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType0.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType1.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType2.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType3.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType4.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType5.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType6.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType7.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType8.png")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType9.png"))
-		};
 
 		private static SolidColorBrush[] StatusBrushes = new SolidColorBrush[] {
 			new SolidColorBrush(Color.FromRgb(0x35, 0x5A, 0x9D)),
@@ -37,7 +25,20 @@ namespace MonitorTile {
 			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus0.ico")),
 			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus1.ico")),
 			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus2.ico")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus3.ico"))
+			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus3.ico")),
+		};
+
+		private static BitmapImage[] TaskIcons = new BitmapImage[] {
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType0.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType1.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType2.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType3.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType4.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType5.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType6.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType7.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType8.png")),
+			new BitmapImage(new Uri("pack://application:,,,/Images/TaskType9.png"))
 		};
 
 		private static ImageBrush[] PauseGlyphs = new ImageBrush[] {
@@ -94,7 +95,7 @@ namespace MonitorTile {
 
 		}
 
-		private void ViewRefresh() { // Should use bindings but life's too short to be typing out irrelevant boilerplate in an example...
+		private void ViewRefresh() { // Should probably use bindings but life's too short to be typing out irrelevant boilerplate in an example...
 
 			if (Monitor.ConnectionState != WingmanAPI.Monitor.State.Connected) {
 				SelectedTask = null; // In case this was set before disconnection.
@@ -132,7 +133,7 @@ namespace MonitorTile {
 				ViewEmpty.Visibility = (Monitor.SourcesView.IsEmpty ? Visibility.Visible : Visibility.Collapsed);
 			} else if (SelectedTask == null || Monitor.Tasks.SingleOrDefault(x => x.Source == Monitor.SelectedSource.ID && x.ID == SelectedTask.ID) == null) { // Check that SelectedTask still exists.
 				SelectedTask = null; // In case SelectedTask was removed.
-				Icon = StatusIcons[(int)Monitor.SelectedSource.Status];
+				Icon = StatusIcons[(int)Monitor.Status];
 				Background = StatusBrushes[(int)Monitor.SelectedSource.Status];
 				TextTitle.Text = Monitor.SelectedSource.Description;
 				ButtonBack.Visibility = Visibility.Visible;
@@ -149,7 +150,7 @@ namespace MonitorTile {
 				ViewEmpty.Visibility = (Monitor.TasksView.IsEmpty ? Visibility.Visible : Visibility.Collapsed);
 			} else {
 				// SelectedTask = SelectedTask;
-				Icon = StatusIcons[(int)SelectedTask.Status];
+				Icon = StatusIcons[(int)Monitor.Status];
 				Background = StatusBrushes[(int)SelectedTask.Status];
 				TextTitle.Text = Monitor.SelectedSource.Description;
 				ButtonBack.Visibility = Visibility.Visible;

@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,7 +20,7 @@ namespace MonitorList {
 			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus0.ico")),
 			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus1.ico")),
 			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus2.ico")),
-			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus3.ico"))
+			new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus3.ico")),
 		};
 
 		private static ImageBrush[] PauseGlyphs = new ImageBrush[] {
@@ -186,7 +187,7 @@ namespace MonitorList {
 		private void Monitor_Stopped(object sender, EventArgs e) {
 
 			Title = "Wingman Monitor";
-			Icon = new BitmapImage(new Uri("pack://application:,,,/Images/FormStatus0.ico"));
+			Icon = StatusIcons[0];
 
 			ButtonPause.Background = PauseGlyphs[0];
 

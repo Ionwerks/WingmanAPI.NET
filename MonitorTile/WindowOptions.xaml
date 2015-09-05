@@ -1,6 +1,6 @@
 ﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Class="MonitorTile.WindowOptions" x:Name="OptionsWindow" Title="API Options" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-    WindowStyle="None" AllowsTransparency="True" UseLayoutRounding="True" ResizeMode="NoResize" SizeToContent="Height" Icon="Images/FormStatus0.ico"
+    WindowStyle="None" AllowsTransparency="True" UseLayoutRounding="True" ResizeMode="NoResize" SizeToContent="Height"
     Width="400" BorderThickness="1" BorderBrush="#20FFFFFF" Background="#FF333333" Foreground="#FFFFFFFF" FontSize="14"
     Activated="OptionsWindow_Activated"
 >
