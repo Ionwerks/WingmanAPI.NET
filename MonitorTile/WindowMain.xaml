@@ -1,5 +1,5 @@
 ﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:app="clr-namespace:MonitorTile"
-    x:Class="MonitorTile.WindowMain" x:Name="MainWindow" Title="Wingman API Tile" WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+    x:Class="MonitorTile.WindowMain" x:Name="MainWindow" Title="Wingman Monitor" WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
     WindowStyle="None" AllowsTransparency="True" UseLayoutRounding="True" ResizeMode="NoResize" Icon="Images/FormStatus0.ico"
     Width="420" Height="420" BorderThickness="0" Background="#FF355A9D" Foreground="#FFFFFFFF" FontSize="15"
     Activated="MainWindow_Activated" Closing="MainWindow_Closing" Closed="MainWindow_Closed" MouseDown="MainWindow_MouseDown"
