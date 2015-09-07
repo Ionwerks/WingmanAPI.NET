@@ -98,7 +98,7 @@ namespace WingmanAPI {
 		public Version ServiceVersion { get; internal set; }
 		public String Account { get; internal set; }
 		public String SessionKey { get; internal set; }
-		public Int32 SessionCount { get; internal set; }
+		public Int32 SessionAccess { get; internal set; } // 1:Query 2:Query/Clear 3:Query/Clear/Login(Reporting)  4:Query/Clear/Login(Reporting/Groups).
 		public TimeSpan SessionLife { get; internal set; }
 		public DateTime Refresh { get; internal set; }
 		public Status Status { get; internal set; }
@@ -211,7 +211,7 @@ namespace WingmanAPI {
 							if (ReplyFields.Length >= 6 && ReplyFields[1] == API_VERSION) { // Service should confirm it supports our API version by passing the same back (otherwise it will return the current/latest).
 								ServiceVersion = new Version(ReplyFields[1]);
 								SessionKey = ReplyFields[2];
-								SessionCount = int.Parse(ReplyFields[3]);
+								SessionAccess = int.Parse(ReplyFields[3]);
 								SessionLife = TimeSpan.FromSeconds(int.Parse(ReplyFields[4]));
 								Account = ReplyFields[5];
 								Refresh = DateTime.MinValue;
@@ -476,7 +476,7 @@ namespace WingmanAPI {
 			Status = Status.Dormant;
 			Refresh = DateTime.MinValue;
 			Account = null;
-			SessionCount = 0;
+			SessionAccess = 0;
 			SessionLife = TimeSpan.Zero;
 			SessionKey = null;
 			ServiceVersion = null;
