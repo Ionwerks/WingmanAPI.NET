@@ -51,7 +51,7 @@ namespace MonitorTile {
 		private String ReportingKey, ReportingKeyDefault;
 		private Int32 WebsiteOpen;
 		private Boolean DeveloperSession;
-		private Boolean? WindowFlag; // Startup=Null, Activated=True, Shutdown=False
+		private Boolean? WindowFlag; // Startup:Null, Activated:True, Shutdown:False
 		private WingmanAPI.Task SelectedTask;
 
 		/* CLASS CONSTRUCTOR(S) ============================================ */
@@ -284,7 +284,7 @@ namespace MonitorTile {
 
 			Console.WriteLine(e.Text);
 
-			if (e.Text.IndexOf("Not enabled for this account.") > -1) MessageBox.Show("Not enabled for this account.");
+			if (e.Text == "NA\nNot enabled for this account.") MessageBox.Show("Not enabled for this account.", "Wingman Monitor");
 
 		}
 
